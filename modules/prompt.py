@@ -24,7 +24,7 @@ class PromptGenerator:
         azure_config = self.config_manager.get_azure_config()
         # 使用模板中定义的system_prompt，如果没有则使用默认值
         system_prompt = self.prompts['system_prompt']
-        assistant_prompt = self.prompts['assistant_prompt']
+        assistant_prompt = json.dumps(self.prompts['assistant_prompt'], ensure_ascii=False)
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": word},

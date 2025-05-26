@@ -43,9 +43,10 @@
   },
   "30": {
     "inputs": {
-      "seed": 578215943187668,
+      "seed": 0,
       "steps": 30,
       "cfg": 1,
+      "control_after_generate": "randomize",
       "sampler_name": "euler",
       "scheduler": "simple",
       "denoise": 1,
