@@ -1,0 +1,53 @@
+# 配置文件
+# Azure OpenAI 配置
+azure_openai:
+  endpoint: "https://your-endpoint.openai.azure.com/"
+  api_key: "your-api-key"
+  api_version: "2024-05-01-preview"
+  deployment_name: "gpt-4"
+  prompts_file: "config/prompts.json"
+
+# ComfyUI 配置
+comfyui:
+  api_url: "http://127.0.0.1:8188"  # ComfyUI的本地API地址
+  workflow_file: "config/workflows/prod.json"  # 预设的工作流文件路径
+  model_name: "dreamshaper_8"       # 使用的模型名称
+  negative_prompt: "ng_deepnegative_v1_75t,(badhandv4:1.2),EasyNegative,(worst quality:2)"
+  negative_prompt_nodes: ["7"]
+  positive_prompt_nodes: ["35"]
+  width: 1024
+  height: 1024
+  steps: 30
+  cfg_scale: 7.5
+  sampler: "euler_a"
+  scheduler: "normal"
+  seed: -1                          # -1表示随机种子
+  use_random_seed: true             # 是否每次生成都使用随机种子
+  timeout: 180                      # 等待图像生成的超时时间（秒）
+  preload_model: false              # 是否在启动时预加载模型以加速生成
+  websocket_enabled: true           # 是否启用WebSocket连接来监控状态
+
+# 腾讯云配置
+tencent_cloud:
+  secret_id: "your-secret-id"
+  secret_key: "your-secret-key"
+  region: "ap-guangzhou"
+
+# 魔音工坊配置
+moyin:
+  api_key: "your-api-key"
+  api_secret: "your-api-secret"
+  api_url: "https://open.mobvoi.com/api/tts/v1"
+  speaker_zh: "jupiter_BV064"
+  speaker_en: "mercury_jane_24k"
+
+# 字幕配置
+subtitle:
+  html_template: "config/html_templates/default.html"
+
+# ffmpeg 配置
+ffmpeg:
+  video_codec: "libx264"
+  audio_codec: "aac"
+  audio_bitrate: "192k"
+  pixel_format: "yuv420p"
