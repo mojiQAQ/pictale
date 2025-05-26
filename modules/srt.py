@@ -9,7 +9,7 @@ class SrtGenerator:
     def __init__(self):
         self.logger = get_logger(__name__)
         self.config_manager = ConfigManager()
-        self.output_dir = self.config_manager.get_output_dir('videos')
+        self.output_dir = self.config_manager.get_output_base_dir()
     
     def _get_audio_duration(self, audio_path):
         """获取音频文件的持续时间（秒）"""
@@ -30,20 +30,15 @@ class SrtGenerator:
         milliseconds = int((seconds - int(seconds)) * 1000)
         return f"{hours:02}:{minutes:02}:{int(seconds):02},{milliseconds:03}"
     
-    def generate(self, word_data, lead_silence=1.0, audio_gap=1.0, output_path=None):
+    def generate(self, audio_path, audio_zh_path=None, text="", text_zh="", lead_silence=1.0, audio_gap=1.0, output_path=None):
         """
-        根据单词数据生成SRT字幕文件
+        根据音频生成SRT字幕文件
         
         Args:
-            word_data: 包含单词数据的字典，需要包含以下字段:
-                - word: 单词文本
-                - word_zh: 单词中文翻译
-                - phrase: 短语文本
-                - phrase_zh: 短语中文翻译
-                - word_audio_path: 单词音频路径
-                - word_zh_audio_path: 单词中文音频路径
-                - phrase_audio_path: 短语音频路径
-                - phrase_zh_audio_path: 短语中文音频路径
+            audio_path: 英文音频路径
+            audio_zh_path: 中文音频路径（可选）
+            text: 英文文本内容
+            text_zh: 中文文本内容
             lead_silence: 前导静音时间（秒）
             audio_gap: 各段音频之间的间隔时间（秒）
             output_path: 输出SRT文件路径（可选）
@@ -62,94 +57,36 @@ class SrtGenerator:
             # 确保输出目录存在
             output_path.parent.mkdir(parents=True, exist_ok=True)
             
-            # 提取单词数据
-            word = word_data.get('word', '')
-            word_zh = word_data.get('word_zh', '')
-            phrase = word_data.get('phrase', '')
-            phrase_zh = word_data.get('phrase_zh', '')
+            # 计算音频时长和位置
+            section = {
+                'start': lead_silence,
+                'end': lead_silence
+            }
             
-            # 获取音频路径
-            word_audio_path = word_data.get('word_audio_path')
-            word_zh_audio_path = word_data.get('word_zh_audio_path')
-            phrase_audio_path = word_data.get('phrase_audio_path')
-            phrase_zh_audio_path = word_data.get('phrase_zh_audio_path')
+            current_time = lead_silence
             
-            # 计算各段音频时长
-            durations = {}
-            current_time = lead_silence  # 从前导静音后开始
+            # 计算英文音频时长
+            if audio_path and os.path.exists(audio_path):
+                audio_duration = self._get_audio_duration(audio_path)
+                section['end'] = current_time + audio_duration
+                current_time += audio_duration + audio_gap
             
-            # 添加单词英文
-            if word_audio_path and os.path.exists(word_audio_path):
-                durations['word'] = {
-                    'start': current_time,
-                    'duration': self._get_audio_duration(word_audio_path)
-                }
-                current_time += durations['word']['duration'] + audio_gap
-            
-            # 添加单词中文
-            if word_zh_audio_path and os.path.exists(word_zh_audio_path):
-                durations['word_zh'] = {
-                    'start': current_time,
-                    'duration': self._get_audio_duration(word_zh_audio_path)
-                }
-                current_time += durations['word_zh']['duration'] + audio_gap
-            
-            # 添加短语英文
-            if phrase_audio_path and os.path.exists(phrase_audio_path):
-                durations['phrase'] = {
-                    'start': current_time,
-                    'duration': self._get_audio_duration(phrase_audio_path)
-                }
-                current_time += durations['phrase']['duration'] + audio_gap
-            
-            # 添加短语中文
-            if phrase_zh_audio_path and os.path.exists(phrase_zh_audio_path):
-                durations['phrase_zh'] = {
-                    'start': current_time,
-                    'duration': self._get_audio_duration(phrase_zh_audio_path)
-                }
+            # 计算中文音频时长
+            if audio_zh_path and os.path.exists(audio_zh_path):
+                audio_zh_duration = self._get_audio_duration(audio_zh_path)
+                # 如果中文部分比英文部分晚结束，更新结束时间
+                section['end'] = max(section['end'], current_time + audio_zh_duration)
             
             # 创建SRT内容
             srt_content = []
-            index = 1
             
-            # 英文单词字幕
-            if 'word' in durations:
-                start_time = durations['word']['start']
-                end_time = start_time + durations['word']['duration']
-                srt_content.append(f"{index}")
-                srt_content.append(f"{self._format_time(start_time)} --> {self._format_time(end_time)}")
-                srt_content.append(f"{word}")
-                srt_content.append("")
-                index += 1
-            
-            # 中文单词字幕
-            if 'word_zh' in durations:
-                start_time = durations['word_zh']['start']
-                end_time = start_time + durations['word_zh']['duration']
-                srt_content.append(f"{index}")
-                srt_content.append(f"{self._format_time(start_time)} --> {self._format_time(end_time)}")
-                srt_content.append(f"{word_zh}")
-                srt_content.append("")
-                index += 1
-            
-            # 英文短语字幕
-            if 'phrase' in durations:
-                start_time = durations['phrase']['start']
-                end_time = start_time + durations['phrase']['duration']
-                srt_content.append(f"{index}")
-                srt_content.append(f"{self._format_time(start_time)} --> {self._format_time(end_time)}")
-                srt_content.append(f"{phrase}")
-                srt_content.append("")
-                index += 1
-            
-            # 中文短语字幕
-            if 'phrase_zh' in durations:
-                start_time = durations['phrase_zh']['start']
-                end_time = start_time + durations['phrase_zh']['duration']
-                srt_content.append(f"{index}")
-                srt_content.append(f"{self._format_time(start_time)} --> {self._format_time(end_time)}")
-                srt_content.append(f"{phrase_zh}")
+            # 添加字幕（英文和中文同时显示）
+            if text or text_zh:
+                srt_content.append("1")
+                srt_content.append(f"{self._format_time(section['start'])} --> {self._format_time(section['end'])}")
+                # 英文在上，中文在下
+                subtitle_text = f"{text}\n{text_zh}" if text and text_zh else (text or text_zh)
+                srt_content.append(subtitle_text)
                 srt_content.append("")
             
             # 保存SRT文件
@@ -162,7 +99,7 @@ class SrtGenerator:
         except Exception as e:
             self.logger.error(f"生成字幕文件时出错: {str(e)}")
             raise Exception(f"Error generating SRT subtitle: {str(e)}")
-    
+
     def attach_to_video(self, video_path, srt_path, output_path=None):
         """
         将SRT字幕文件附加到视频文件
@@ -227,11 +164,11 @@ class SrtGenerator:
                 timestamp = int(time.time())
                 output_path = video_file.with_name(f"{video_file.stem}_hard_subtitled_{timestamp}{video_file.suffix}")
             
-            # 使用FFmpeg硬编码字幕
+            # 使用FFmpeg硬编码字幕，调整样式以适应多行字幕
             command = [
                 'ffmpeg',
                 '-i', video_path,
-                '-vf', f"subtitles={srt_path}:force_style='FontName=Arial,FontSize=24,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=1,BorderStyle=3'",
+                '-vf', f"subtitles={srt_path}:force_style='FontName=Arial,FontSize=36,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2,BorderStyle=3,Alignment=2,MarginV=30'",
                 '-c:a', 'copy',
                 str(output_path)
             ]

@@ -18,7 +18,7 @@ class ImageGenerator:
         self.logger = get_logger(__name__)
         self.config_manager = ConfigManager()
         self.comfy_config = self.config_manager.get_comfy_config()
-        self.output_dir = self.config_manager.get_output_dir('images')
+        self.output_dir = self.config_manager.get_output_base_dir()
         
         # ComfyUI API连接信息
         self.base_url = self.comfy_config.get('api_url', 'http://127.0.0.1:8188')

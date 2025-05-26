@@ -11,7 +11,7 @@ class MoyinAudioGenerator:
         self.logger = get_logger(__name__)
         self.config_manager = ConfigManager()
         self.moyin_config = self.config_manager.get_moyin_config()
-        self.output_dir = self.config_manager.get_output_dir('audio')
+        self.output_dir = self.config_manager.get_output_base_dir()
         self.api_url = self.moyin_config.get('api_url')
         self.speaker_zh = self.moyin_config.get('speaker_zh')
         self.speaker_en = self.moyin_config.get('speaker_en')
@@ -66,7 +66,7 @@ class MoyinAudioGenerator:
                 "speaker": voice_id,
                 "text": text,
                 "audio_type": "wav",  # 音频格式，可选wav、mp3
-                "speed": 1.0,  # 语速，范围0.5-2.0，默认1.0
+                "speed": 0.8,  # 语速，范围0.5-2.0，默认1.0
                 "pitch": 1.0,  # 音调，范围0.5-2.0，默认1.0
                 "volume": 1.0,  # 音量，范围0.5-2.0，默认1.0
                 "rate": 16000  # 采样率，范围16000-48000，默认16000

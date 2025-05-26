@@ -10,7 +10,7 @@ class DraftGenerator:
     def __init__(self):
         self.logger = get_logger(__name__)
         self.config_manager = ConfigManager()
-        self.output_dir = self.config_manager.get_output_dir('videos')
+        self.output_dir = self.config_manager.get_output_base_dir()
     
     def generate_draft(self, word_data_list, output_path=None):
         """

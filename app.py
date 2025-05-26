@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from modules.prompt import PromptGenerator
 from modules.image import ImageGenerator
 from modules.audio_my import MoyinAudioGenerator
+from modules.audio import AudioGenerator
 from modules.video import VideoGenerator
 from modules.srt import SrtGenerator
 from modules.config import ConfigManager
@@ -45,7 +46,7 @@ def print_banner():
     """
     logger.info(banner)
 
-async def process_single_word(word, args, config_manager, task_id, total_steps=6):
+async def process_single_word(word, args, config_manager, task_id, total_steps=5):
     """处理单个单词的视频生成流程"""
     results = {
         'task_id': task_id,
@@ -65,22 +66,34 @@ async def process_single_word(word, args, config_manager, task_id, total_steps=6
             log_success(f"生成提示词: {word_prompt}")
             word_prompt = json.loads(word_prompt)
 
-            results['prompt'] = word_prompt['prompt']
             results['word'] = word_prompt['word']
             results['word_zh'] = word_prompt['word_zh']
+            results['word_prompt'] = word_prompt['word_prompt']
             results['phrase'] = word_prompt['phrase']
             results['phrase_zh'] = word_prompt['phrase_zh']
+            results['phrase_prompt'] = word_prompt['phrase_prompt']
+
+            # 保存结果到JSON文件
+            json_path = output_base_dir / "result.json"
+            with open(json_path, 'w', encoding='utf-8') as f:
+                json.dump(results, f, ensure_ascii=False, indent=2)
+            log_success(f"结果已保存到: {json_path}")
         else:
             log_warning(f"跳过单词 '{word}' 的提示词生成")
-            results['prompt'] = word
+            results['word_prompt'] = word_prompt['word_prompt']
+            results['phrase_prompt'] = word_prompt['phrase_prompt']
 
         # 2. 生成图片
         if not args.skip_image:
             log_step(2, total_steps, f"为单词 '{word}' 生成图像...")
             image_gen = ImageGenerator()
-            image_path = image_gen.generate(results['prompt'], output_path=output_base_dir / "image.png")
-            log_success(f"图像已保存: {image_path}")
-            results['image_path'] = image_path
+            word_image_path = image_gen.generate(results['word_prompt'], output_path=output_base_dir / "word_image.png")
+            log_success(f"单词图像已保存: {word_image_path}")
+            results['word_image_path'] = word_image_path
+
+            phrase_image_path = image_gen.generate(results['phrase_prompt'], output_path=output_base_dir / "phrase_image.png")
+            log_success(f"句子图像已保存: {phrase_image_path}")
+            results['phrase_image_path'] = phrase_image_path
         elif args.image_path:
             log_warning(f"为单词 '{word}' 使用已有图像: {args.image_path}")
             results['image_path'] = args.image_path
@@ -91,7 +104,14 @@ async def process_single_word(word, args, config_manager, task_id, total_steps=6
         # 3. 生成语音
         if not args.skip_audio:
             log_step(3, total_steps, f"为单词 '{word}' 生成语音...")
-            audio_gen = MoyinAudioGenerator()
+            if args.tts == 'tencent':
+                audio_gen = AudioGenerator()
+            elif args.tts == 'moyin':
+                audio_gen = MoyinAudioGenerator()
+            else:
+                log_error("不支持的语音类型，请使用--tts参数指定语音类型")
+                return None
+            
             word_audio_path = audio_gen.generate(results['word'], 'word', 'en', output_path=output_base_dir / "word_audio.wav")
             log_success(f"单词语音已保存: {word_audio_path}")
             results['word_audio_path'] = word_audio_path
@@ -121,14 +141,32 @@ async def process_single_word(word, args, config_manager, task_id, total_steps=6
             # 使用与视频生成相同的参数值
             lead_silence = args.lead_silence if hasattr(args, 'lead_silence') else 1.0
             audio_gap = args.audio_gap if hasattr(args, 'audio_gap') else 1.0
-            srt_path = srt_gen.generate(
-                results, 
+            
+            # 为单词部分生成字幕
+            word_srt_path = srt_gen.generate(
+                audio_path=results['word_audio_path'],
+                audio_zh_path=results['word_zh_audio_path'],
+                text=results['word'],
+                text_zh=results['word_zh'],
                 lead_silence=lead_silence,
                 audio_gap=audio_gap,
-                output_path=output_base_dir / "subtitle.srt"
+                output_path=output_base_dir / f"word_subtitle.srt"
             )
-            log_success(f"SRT字幕已保存: {srt_path}")
-            results['srt_path'] = srt_path
+            log_success(f"单词SRT字幕已保存: {word_srt_path}")
+            results['word_srt_path'] = word_srt_path
+            
+            # 为短语部分生成字幕
+            phrase_srt_path = srt_gen.generate(
+                audio_path=results['phrase_audio_path'],
+                audio_zh_path=results['phrase_zh_audio_path'],
+                text=results['phrase'],
+                text_zh=results['phrase_zh'],
+                lead_silence=lead_silence,
+                audio_gap=audio_gap,
+                output_path=output_base_dir / f"phrase_subtitle.srt"
+            )
+            log_success(f"短语SRT字幕已保存: {phrase_srt_path}")
+            results['phrase_srt_path'] = phrase_srt_path
         else:
             log_warning(f"跳过单词 '{word}' 的字幕生成")
         
@@ -140,31 +178,34 @@ async def process_single_word(word, args, config_manager, task_id, total_steps=6
             audio_gap = args.audio_gap if hasattr(args, 'audio_gap') else 1.0
             end_pause = args.end_pause if hasattr(args, 'end_pause') else 1.0
             
-            video_path = video_gen.generate(
-                results['image_path'],
-                word_audio_path=results['word_audio_path'],
-                word_zh_audio_path=results['word_zh_audio_path'],
-                phrase_audio_path=results['phrase_audio_path'],
-                phrase_zh_audio_path=results['phrase_zh_audio_path'],
+            # 生成单词视频
+            word_video_path = video_gen.generate(
+                str(results['word_image_path']),
+                audio_path=str(results['word_audio_path']),
+                audio_zh_path=str(results['word_zh_audio_path']),
                 lead_silence_duration=lead_silence,
                 audio_gap=audio_gap,
                 end_pause=end_pause,
-                output_path=output_base_dir / "video.mp4"
+                output_video_path=str(output_base_dir / "word_video.mp4"),
+                output_audio_path=str(output_base_dir / "word_audio.aac")
             )
-            log_success(f"视频已生成: {video_path}")
-            results['video_path'] = video_path
+            log_success(f"单词视频已生成: {word_video_path}")
+            results['word_video_path'] = word_video_path
             
-            # 6. 将字幕添加到视频
-            if not args.skip_subtitle and 'srt_path' in results:
-                log_step(6, total_steps, f"为单词 '{word}' 添加字幕到视频...")
-                srt_gen = SrtGenerator()
-                subtitled_video_path = srt_gen.hard_attach_to_video(
-                    video_path,
-                    results['srt_path'],
-                    output_path=output_base_dir / "video_subtitled.mp4"
-                )
-                log_success(f"带字幕的视频已生成: {subtitled_video_path}")
-                results['subtitled_video_path'] = subtitled_video_path
+            # 生成短语视频
+            phrase_video_path = video_gen.generate(
+                str(results['phrase_image_path']),
+                audio_path=str(results['phrase_audio_path']),
+                audio_zh_path=str(results['phrase_zh_audio_path']),
+                lead_silence_duration=lead_silence,
+                audio_gap=audio_gap,
+                end_pause=end_pause,
+                output_video_path=str(output_base_dir / "phrase_video.mp4"),
+                output_audio_path=str(output_base_dir / "phrase_audio.aac")
+            )
+            log_success(f"短语视频已生成: {phrase_video_path}")
+            results['phrase_video_path'] = phrase_video_path
+
         else:
             log_warning(f"跳过单词 '{word}' 的视频生成")
 
@@ -273,7 +314,7 @@ async def generate_video(args, config_manager):
     
     # 完成
     elapsed_time = time.time() - start_time
-    logger.info(f"\n{COLORS['GREEN']}{COLORS['BOLD']}✨ 所有操作完成! 总用时: {elapsed_time:.2f}秒{COLORS['RESET']}")
+    logger.info(f"\n{COLORS['GREEN']}{COLORS['BOLD']}✨ 任务 {task_id} 所有操作完成! 总用时: {elapsed_time:.2f}秒{COLORS['RESET']}")
     
     return final_result
 
@@ -308,9 +349,6 @@ async def main():
     word_group.add_argument('--words', '-ws', nargs='+', help='要生成视频的多个单词，空格分隔')
     word_group.add_argument('--words-file', '-wf', help='包含单词列表的文件路径，每行一个单词')
     
-    # 模板选项
-    parser.add_argument('--template', '-t', default='cartoon', help='使用的模板名称')
-    
     # 跳过特定步骤的选项
     parser.add_argument('--skip-prompt', action='store_true', help='跳过提示词生成')
     parser.add_argument('--skip-image', action='store_true', help='跳过图像生成')
@@ -325,18 +363,16 @@ async def main():
     parser.add_argument('--output-dir', help='指定输出目录')
     
     # 视频和音频参数
-    parser.add_argument('--lead-silence', type=float, default=1.0, help='视频前导静音时长（秒）')
-    parser.add_argument('--audio-gap', type=float, default=1.0, help='各段音频之间的间隔时间（秒）')
-    parser.add_argument('--end-pause', type=float, default=1.0, help='每个单词视频结束后的静置时间（秒）')
+    parser.add_argument('--tts', '-tts', default='tencent', help='语音合成类型，可选值: tencent, moyin')
+    parser.add_argument('--lead-silence', type=float, default=0.5, help='视频前导静音时长（秒）')
+    parser.add_argument('--audio-gap', type=float, default=0.7, help='各段音频之间的间隔时间（秒）')
+    parser.add_argument('--end-pause', type=float, default=0.5, help='每个单词视频结束后的静置时间（秒）')
     
     # 视频合并选项
     parser.add_argument('--combine', '-c', action='store_true', help='合并生成的多个视频')
-    parser.add_argument('--transition-duration', '-td', type=float, default=1.0, help='视频之间的转场时长（秒）')
-    parser.add_argument('--buffer-duration', '-bd', type=float, default=1.0, help='视频之间的缓冲时长（秒）')
 
     # 其他选项
     parser.add_argument('--play', action='store_true', help='生成后自动播放视频')
-    parser.add_argument('--debug', action='store_true', help='显示详细错误信息')
     parser.add_argument('--no-color', action='store_true', help='禁用彩色输出')
     parser.add_argument('--version', action='store_true', help='显示版本信息')
     

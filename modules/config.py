@@ -26,10 +26,7 @@ class ConfigManager:
         """初始化输出目录配置"""
         base_dir = Path(__file__).parent.parent / 'output'
         self._output_dirs = {
-            'base': base_dir,
-            'images': base_dir / 'images',
-            'audio': base_dir / 'audio',
-            'videos': base_dir / 'videos'
+            'base': base_dir
         }
 
         # 确保所有输出目录存在
@@ -114,20 +111,6 @@ class ConfigManager:
     def get_output_base_dir(self) -> Path:
         """获取输出目录"""
         return self._output_dirs['base']
-
-    # 输出目录相关配置
-    def get_output_dir(self, type_name: str) -> Path:
-        """获取指定类型的输出目录
-        
-        Args:
-            type_name: 输出类型，可选值：'images', 'audio', 'videos'
-        
-        Returns:
-            输出目录路径
-        """
-        if type_name not in self._output_dirs:
-            raise ValueError(f"Unknown output directory type: {type_name}")
-        return self._output_dirs[type_name]
 
     # FFmpeg相关配置
     def get_ffmpeg_config(self) -> Dict[str, Any]:

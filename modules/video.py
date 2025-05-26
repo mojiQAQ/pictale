@@ -10,24 +10,22 @@ class VideoGenerator:
     def __init__(self):
         self.logger = get_logger(__name__)
         self.config_manager = ConfigManager()
-        self.output_dir = self.config_manager.get_output_dir('videos')
+        self.output_dir = self.config_manager.get_output_base_dir()
         self.ffmpeg_config = self.config_manager.get_ffmpeg_config()
     
-    def generate(self, image_path: str, word_audio_path: str, word_zh_audio_path: str = None, 
-                phrase_audio_path: str = None, phrase_zh_audio_path: str = None, 
+    def generate(self, image_path: str, audio_path: str, audio_zh_path: str = None, 
                 quality: str = 'medium',
                 lead_silence_duration: float = 1,
                 end_pause: float = 1,
                 audio_gap: float = 1,
-                output_path: str = None) -> str:
+                output_video_path: str = None,
+                output_audio_path: str = None) -> str:
         """生成视频，将多个音频和一个图片合成为视频
         
         Args:
             image_path: 图像路径
-            word_audio_path: 单词英文音频路径
-            word_zh_audio_path: 单词中文音频路径（可选）
-            phrase_audio_path: 短语英文音频路径（可选）
-            phrase_zh_audio_path: 短语中文音频路径（可选）
+            audio_path: 音频路径
+            audio_zh_path: 中文音频路径（可选）
             quality: 视频质量，可选值: 'low', 'medium', 'high'
             lead_silence_duration: 前导静音时间（秒）
             end_pause: 音频结束后的静置时间（秒）
@@ -37,24 +35,32 @@ class VideoGenerator:
         Returns:
             str: 生成的视频路径
         """
-        if output_path is None:
+        if output_video_path is None:
             timestamp = int(time.time())
-            output_path = self.output_dir / f"video_{timestamp}.mp4"
+            output_video_path = self.output_dir / f"video_{timestamp}.mp4"
+        
+        if output_audio_path is None:
+            timestamp = int(time.time()) if 'timestamp' not in locals() else timestamp
+            output_audio_path = self.output_dir / f"audio_{timestamp}.aac"
 
+        # Convert Path objects to strings
+        image_path = str(image_path)
+        audio_path = str(audio_path) if audio_path else None
+        audio_zh_path = str(audio_zh_path) if audio_zh_path else None
+        output_video_path = str(output_video_path)
+        output_audio_path = str(output_audio_path)
+
+        print("path", image_path, audio_path, audio_zh_path, output_video_path, output_audio_path)
         # 创建临时目录
         temp_dir = tempfile.mkdtemp()
         
         try:
             # 收集所有存在的音频文件路径
             audio_paths = []
-            if word_audio_path and os.path.exists(word_audio_path):
-                audio_paths.append(word_audio_path)
-            if word_zh_audio_path and os.path.exists(word_zh_audio_path):
-                audio_paths.append(word_zh_audio_path)
-            if phrase_audio_path and os.path.exists(phrase_audio_path):
-                audio_paths.append(phrase_audio_path)
-            if phrase_zh_audio_path and os.path.exists(phrase_zh_audio_path):
-                audio_paths.append(phrase_zh_audio_path)
+            if audio_path and os.path.exists(audio_path):
+                audio_paths.append(audio_path)
+            if audio_zh_path and os.path.exists(audio_zh_path):
+                audio_paths.append(audio_zh_path)
             
             if not audio_paths:
                 self.logger.error("没有提供有效的音频文件")
@@ -135,7 +141,7 @@ class VideoGenerator:
             filter_complex = f"{concat_string}concat=n={concat_count}:v=0:a=1[out]"
             
             # 合并所有音频文件
-            combined_audio = os.path.join(os.path.dirname(output_path), "combined_audio.aac")
+            combined_audio = output_audio_path
             concat_audio_cmd = [
                 "ffmpeg",
                 *concat_inputs,
@@ -190,14 +196,14 @@ class VideoGenerator:
                 '-pix_fmt', self.ffmpeg_config.get('pixel_format', 'yuv420p'),
                 '-vf', 'scale=-2:1080,format=yuv420p', # 确保1080p和兼容性
                 '-t', str(total_duration),  # 指定时长确保音频完全播放
-                str(output_path)
+                output_video_path
             ]
             
             self.logger.info(f"开始生成视频，使用图像: {image_path} 和 {len(audio_paths)} 个音频文件")
             self.logger.debug(f"FFmpeg命令: {' '.join(command)}")
             subprocess.run(command, check=True, capture_output=True)
-            self.logger.info(f"视频生成成功: {output_path}")
-            return str(output_path)
+            self.logger.info(f"视频生成成功: {output_video_path}")
+            return output_video_path
         except subprocess.CalledProcessError as e:
             error_message = e.stderr.decode()
             self.logger.error(f"生成视频时出错: {error_message}")

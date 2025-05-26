@@ -47,9 +47,10 @@ def get_logger(name):
     if logger.handlers:
         return logger
     
-    # 设置日志级别
-    logger.setLevel(logging.DEBUG)
-    
+    # 设置日志级别，默认 INFO，可通过环境变量 DEBUG 控制
+    log_level = logging.DEBUG if os.getenv('DEBUG') else logging.INFO
+    logger.setLevel(log_level)
+
     # 创建控制台处理器
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(ColoredFormatter())
