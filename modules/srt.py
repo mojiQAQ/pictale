@@ -44,7 +44,7 @@ class SrtGenerator:
             output_path: 输出SRT文件路径（可选）
             
         Returns:
-            str: 生成的SRT文件路径
+            dict: 包含英文和中文SRT文件路径的字典
         """
         try:
             # 如果未指定输出路径，则自动生成
@@ -77,24 +77,33 @@ class SrtGenerator:
                 # 如果中文部分比英文部分晚结束，更新结束时间
                 section['end'] = max(section['end'], current_time + audio_zh_duration)
             
-            # 创建SRT内容
-            srt_content = []
+            # 创建英文SRT文件
+            en_output_path = output_path.with_name(f"{output_path.stem}_en{output_path.suffix}")
+            if text:
+                en_srt_content = []
+                en_srt_content.append("1")
+                en_srt_content.append(f"{self._format_time(section['start'])} --> {self._format_time(section['end'])}")
+                en_srt_content.append(text)
+                en_srt_content.append("")
+                
+                with open(en_output_path, 'w', encoding='utf-8') as f:
+                    f.write('\n'.join(en_srt_content))
+                
+                self.logger.info(f"英文字幕文件已保存: {en_output_path}")
             
-            # 添加字幕（英文和中文同时显示）
-            if text or text_zh:
-                srt_content.append("1")
-                srt_content.append(f"{self._format_time(section['start'])} --> {self._format_time(section['end'])}")
-                # 英文在上，中文在下
-                subtitle_text = f"{text}\n{text_zh}" if text and text_zh else (text or text_zh)
-                srt_content.append(subtitle_text)
-                srt_content.append("")
-            
-            # 保存SRT文件
-            with open(output_path, 'w', encoding='utf-8') as f:
-                f.write('\n'.join(srt_content))
-            
-            self.logger.info(f"字幕文件已保存: {output_path}")
-            return str(output_path)
+            # 创建中文SRT文件
+            zh_output_path = output_path.with_name(f"{output_path.stem}_zh{output_path.suffix}")
+            if text_zh:
+                zh_srt_content = []
+                zh_srt_content.append("1")
+                zh_srt_content.append(f"{self._format_time(section['start'])} --> {self._format_time(section['end'])}")
+                zh_srt_content.append(text_zh)
+                zh_srt_content.append("")
+                
+                with open(zh_output_path, 'w', encoding='utf-8') as f:
+                    f.write('\n'.join(zh_srt_content))
+                
+                self.logger.info(f"中文字幕文件已保存: {zh_output_path}")
             
         except Exception as e:
             self.logger.error(f"生成字幕文件时出错: {str(e)}")
@@ -144,45 +153,3 @@ class SrtGenerator:
         except Exception as e:
             self.logger.error(f"添加字幕到视频时出错: {str(e)}")
             raise Exception(f"Error attaching subtitle to video: {str(e)}")
-
-    def hard_attach_to_video(self, video_path, srt_path, output_path=None):
-        """
-        将SRT字幕文件硬编码到视频文件中
-        
-        Args:
-            video_path: 视频文件路径
-            srt_path: SRT字幕文件路径
-            output_path: 输出视频文件路径（可选）
-            
-        Returns:
-            str: 带硬编码字幕的视频文件路径
-        """
-        try:
-            # 如果未指定输出路径，则自动生成
-            if not output_path:
-                video_file = Path(video_path)
-                timestamp = int(time.time())
-                output_path = video_file.with_name(f"{video_file.stem}_hard_subtitled_{timestamp}{video_file.suffix}")
-            
-            # 使用FFmpeg硬编码字幕，调整样式以适应多行字幕
-            command = [
-                'ffmpeg',
-                '-i', video_path,
-                '-vf', f"subtitles={srt_path}:force_style='FontName=Arial,FontSize=36,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2,BorderStyle=3,Alignment=2,MarginV=30'",
-                '-c:a', 'copy',
-                str(output_path)
-            ]
-            
-            self.logger.debug(f"FFmpeg命令: {' '.join(command)}")
-            subprocess.run(command, check=True, capture_output=True)
-            
-            self.logger.info(f"带硬编码字幕的视频已生成: {output_path}")
-            return str(output_path)
-            
-        except subprocess.CalledProcessError as e:
-            error_message = e.stderr.decode() if e.stderr else str(e)
-            self.logger.error(f"硬编码字幕到视频时出错: {error_message}")
-            raise Exception(f"Error hard-coding subtitle to video: {error_message}")
-        except Exception as e:
-            self.logger.error(f"硬编码字幕到视频时出错: {str(e)}")
-            raise Exception(f"Error hard-coding subtitle to video: {str(e)}")

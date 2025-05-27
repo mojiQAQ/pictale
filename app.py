@@ -364,9 +364,9 @@ async def main():
     
     # 视频和音频参数
     parser.add_argument('--tts', '-tts', default='tencent', help='语音合成类型，可选值: tencent, moyin')
-    parser.add_argument('--lead-silence', type=float, default=0.5, help='视频前导静音时长（秒）')
-    parser.add_argument('--audio-gap', type=float, default=0.7, help='各段音频之间的间隔时间（秒）')
-    parser.add_argument('--end-pause', type=float, default=0.5, help='每个单词视频结束后的静置时间（秒）')
+    parser.add_argument('--lead-silence', type=float, default=0.3, help='视频前导静音时长（秒）')
+    parser.add_argument('--audio-gap', type=float, default=0.3, help='各段音频之间的间隔时间（秒）')
+    parser.add_argument('--end-pause', type=float, default=0, help='每个单词视频结束后的静置时间（秒）')
     
     # 视频合并选项
     parser.add_argument('--combine', '-c', action='store_true', help='合并生成的多个视频')
