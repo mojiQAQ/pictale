@@ -12,6 +12,7 @@ from modules.prompt import PromptGenerator
 from modules.image import ImageGenerator
 from modules.audio_my import MoyinAudioGenerator
 from modules.audio import AudioGenerator
+from modules.audio_ali import AudioGenerator_ali
 from modules.video import VideoGenerator
 from modules.srt import SrtGenerator
 from modules.config import ConfigManager
@@ -97,34 +98,29 @@ async def process_single_word(word, args, config_manager, task_id, total_steps=5
         elif args.image_path:
             log_warning(f"为单词 '{word}' 使用已有图像: {args.image_path}")
             results['image_path'] = args.image_path
-        else:
-            log_error("需要图像路径，请提供--image-path或不使用--skip-image")
-            return None
+        # else:
+        #     log_error("需要图像路径，请提供--image-path或不使用--skip-image")
+        #     return None
 
         # 3. 生成语音
         if not args.skip_audio:
             log_step(3, total_steps, f"为单词 '{word}' 生成语音...")
-            if args.tts == 'tencent':
-                audio_gen = AudioGenerator()
-            elif args.tts == 'moyin':
-                audio_gen = MoyinAudioGenerator()
-            else:
-                log_error("不支持的语音类型，请使用--tts参数指定语音类型")
-                return None
-            
-            word_audio_path = audio_gen.generate(results['word'], 'word', 'en', output_path=output_base_dir / "word_audio.wav")
+            zh_audio_gen = AudioGenerator()
+            en_audio_gen = AudioGenerator()
+
+            word_audio_path = en_audio_gen.generate(results['word'], 'word', 'en', output_path=output_base_dir / "word_audio.wav")
             log_success(f"单词语音已保存: {word_audio_path}")
             results['word_audio_path'] = word_audio_path
 
-            word_zh_audio_path = audio_gen.generate(results['word_zh'], 'word', 'zh', output_path=output_base_dir / "word_zh_audio.wav")
+            word_zh_audio_path = zh_audio_gen.generate(results['word_zh'], 'word', 'zh', output_path=output_base_dir / "word_zh_audio.wav")
             log_success(f"单词中文语音已保存: {word_zh_audio_path}")
             results['word_zh_audio_path'] = word_zh_audio_path
 
-            phrase_audio_path = audio_gen.generate(results['phrase'], 'phrase', 'en', output_path=output_base_dir / "phrase_audio.wav")
+            phrase_audio_path = en_audio_gen.generate(results['phrase'], 'phrase', 'en', output_path=output_base_dir / "phrase_audio.wav")
             log_success(f"短语语音已保存: {phrase_audio_path}")
             results['phrase_audio_path'] = phrase_audio_path
 
-            phrase_zh_audio_path = audio_gen.generate(results['phrase_zh'], 'phrase', 'zh', output_path=output_base_dir / "phrase_zh_audio.wav")
+            phrase_zh_audio_path = zh_audio_gen.generate(results['phrase_zh'], 'phrase', 'zh', output_path=output_base_dir / "phrase_zh_audio.wav")
             log_success(f"短语中文语音已保存: {phrase_zh_audio_path}")
             results['phrase_zh_audio_path'] = phrase_zh_audio_path
         elif args.audio_path:
@@ -150,7 +146,7 @@ async def process_single_word(word, args, config_manager, task_id, total_steps=5
                 text_zh=results['word_zh'],
                 lead_silence=lead_silence,
                 audio_gap=audio_gap,
-                output_path=output_base_dir / f"word_subtitle.srt"
+                output_path=output_base_dir / f"{word}.srt"
             )
             log_success(f"单词SRT字幕已保存: {word_srt_path}")
             results['word_srt_path'] = word_srt_path
@@ -163,7 +159,7 @@ async def process_single_word(word, args, config_manager, task_id, total_steps=5
                 text_zh=results['phrase_zh'],
                 lead_silence=lead_silence,
                 audio_gap=audio_gap,
-                output_path=output_base_dir / f"phrase_subtitle.srt"
+                output_path=output_base_dir / f"{word}_phrase.srt"
             )
             log_success(f"短语SRT字幕已保存: {phrase_srt_path}")
             results['phrase_srt_path'] = phrase_srt_path
@@ -363,7 +359,7 @@ async def main():
     parser.add_argument('--output-dir', help='指定输出目录')
     
     # 视频和音频参数
-    parser.add_argument('--tts', '-tts', default='tencent', help='语音合成类型，可选值: tencent, moyin')
+    parser.add_argument('--tts', '-tts', default='tencent', help='语音合成类型，可选值: tencent, moyin, ali')
     parser.add_argument('--lead-silence', type=float, default=0.3, help='视频前导静音时长（秒）')
     parser.add_argument('--audio-gap', type=float, default=0.3, help='各段音频之间的间隔时间（秒）')
     parser.add_argument('--end-pause', type=float, default=0, help='每个单词视频结束后的静置时间（秒）')

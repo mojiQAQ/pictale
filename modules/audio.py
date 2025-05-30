@@ -52,17 +52,17 @@ class AudioGenerator:
             # 根据语言选择不同的参数
             if language == "zh":
                 primary_language = 1  # 中文
-                voice_type = 101016   # 中文女声 (智甜)
+                voice_type = self.tencent_config['voice_zh']   # 中文女声 (爱小璟)
             else:
                 primary_language = 2  # 英文
-                voice_type = 501009   # 英文女声 (WeWinny)
+                voice_type = self.tencent_config['voice_en']   # 英文女声 (WeWinny)
             
             params = {
                 "Text": text,
                 "SessionId": f"session-{int(time.time())}",
                 "ModelType": 1,           # 1: 标准音色
                 "Volume": 5,              # 音量大小
-                "Speed": 0,               # 语速
+                "Speed": -1,               # 语速
                 "SampleRate": 16000,      # 采样率
                 "Codec": "wav",           # 音频格式
                 "PrimaryLanguage": primary_language,

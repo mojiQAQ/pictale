@@ -32,6 +32,15 @@ tencent_cloud:
   secret_id: "your-secret-id"
   secret_key: "your-secret-key"
   region: "ap-guangzhou"
+  voice_zh: 601012
+  voice_en: 601013
+
+# 阿里云配置
+aliyun:
+  access_key_id: "your-access-key-id"
+  access_key_secret: "your-access-key-secret"
+  appkey: "your-appkey"
+  region: "cn-shanghai"
 
 # 魔音工坊配置
 moyin:

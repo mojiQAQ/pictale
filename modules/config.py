@@ -91,7 +91,7 @@ class ConfigManager:
         return self.settings['comfyui']
     
     # 腾讯云 API 相关配置
-    def get_tencent_config(self) -> Dict[str, str]:
+    def get_tencent_config(self) -> Dict[str, Any]:
         """获取腾讯云API配置"""
         if 'tencent_cloud' not in self.settings:
             # 如果配置文件中没有，尝试从环境变量获取
@@ -121,4 +121,8 @@ class ConfigManager:
                 'audio_codec': 'aac',
                 'audio_bitrate': '192k',
             }
-        return self.settings['ffmpeg'] 
+        return self.settings['ffmpeg']
+
+    def get_aliyun_config(self) -> Dict[str, Any]:
+        """获取阿里云配置"""
+        return self.settings['aliyun']
