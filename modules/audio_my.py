@@ -89,7 +89,7 @@ class MoyinAudioGenerator:
                     timestamp = int(time.time())
                     output_path = self.output_dir / f"{timestamp}_{type}_{language}.wav"
                 # 保存音频文件
-                with open(output_path, 'wb', encoding='utf-8') as f:
+                with open(output_path, 'wb') as f:
                     f.write(audio_data)
             else:
                 self.logger.error(f"API返回错误: {response.text}")

@@ -131,7 +131,7 @@ class ImageGenerator:
             if not output_path:
                 timestamp = int(time.time())
                 output_path = self.output_dir / f"generated_{timestamp}.png"
-            with open(output_path, 'wb', encoding='utf-8') as f:
+            with open(output_path, 'wb') as f:
                 f.write(image_data)
             
             return str(output_path)
