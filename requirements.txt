@@ -19,7 +19,6 @@ tencentcloud-sdk-python==3.0.1154
 aliyun-python-sdk-core==2.15.1
 aliyun-python-sdk-nls-cloud-meta==1.0.0
 alibabacloud-nls-python-sdk==1.0.2
-nls-python-sdk==1.0.0
 
 # AI and machine learning
 openai>=1.40.0
@@ -40,7 +39,7 @@ pytest==8.3.2
 pytest-asyncio==0.23.8
 
 # Video editing (optional - for advanced features)
-pyJianYingDraft==0.9.9
+pyJianYingDraft==0.1.1
 
 # Development and utilities
 typing-extensions>=4.0.0; python_version < "3.8"

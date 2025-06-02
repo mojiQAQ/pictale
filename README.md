@@ -23,7 +23,7 @@
 
 1. 克隆项目：
 ```bash
-git clone https://github.com/yourusername/pictale.git
+git clone https://github.com/mojiQAQ/pictale.git
 cd pictale
 ```
 
