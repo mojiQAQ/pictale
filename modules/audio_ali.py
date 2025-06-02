@@ -137,7 +137,7 @@ class AudioGenerator_ali:
             output_path.parent.mkdir(parents=True, exist_ok=True)
             
             # 打开文件
-            self.file_handle = open(str(output_path), 'wb')
+            self.file_handle = open(str(output_path), 'wb', encoding='utf-8')
             
             # 创建语音合成器
             # nls.enableTrace(True)

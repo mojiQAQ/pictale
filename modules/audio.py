@@ -86,7 +86,7 @@ class AudioGenerator:
             
             # 保存音频文件
             decoded_audio_data = base64.b64decode(resp.Audio)
-            with open(str(output_path), 'wb') as f:
+            with open(str(output_path), 'wb', encoding='utf-8') as f:
                 f.write(decoded_audio_data)
             
             self.logger.info(f"语音文件已保存: {output_path}")
