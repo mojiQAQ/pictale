@@ -98,15 +98,15 @@ async def process_single_word(word, args, config_manager, task_id, total_steps=5
         elif args.image_path:
             log_warning(f"为单词 '{word}' 使用已有图像: {args.image_path}")
             results['image_path'] = args.image_path
-        # else:
-        #     log_error("需要图像路径，请提供--image-path或不使用--skip-image")
-        #     return None
+        else:
+            log_error("需要图像路径，请提供--image-path或不使用--skip-image")
+            return None
 
         # 3. 生成语音
         if not args.skip_audio:
             log_step(3, total_steps, f"为单词 '{word}' 生成语音...")
             zh_audio_gen = AudioGenerator()
-            en_audio_gen = AudioGenerator()
+            en_audio_gen = AudioGenerator_ali()
 
             word_audio_path = en_audio_gen.generate(results['word'], 'word', 'en', output_path=output_base_dir / "word_audio.wav")
             log_success(f"单词语音已保存: {word_audio_path}")

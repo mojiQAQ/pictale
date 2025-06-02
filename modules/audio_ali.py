@@ -15,10 +15,6 @@ import nls
 from modules.config import ConfigManager
 from modules.logger import get_logger
 
-# 全局禁用SSL证书验证
-ssl._create_default_https_context = ssl._create_unverified_context
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 class AudioGenerator_ali:
     def __init__(self):
         self.logger = get_logger(__name__)
@@ -70,23 +66,23 @@ class AudioGenerator_ali:
             self.logger.error(f"获取Token失败: {str(e)}")
             raise
 
-    def __on_metainfo(self, message):
-        self.logger.debug(f"on_metainfo: {message}")
+    def __on_metainfo(self, message, *args):
+        self.logger.debug(f"on_metainfo: {message}, {args}")
     
-    def __on_error(self, message):
-        self.logger.error(f"on_error: {message}")
+    def __on_error(self, message, *args):
+        self.logger.error(f"on_error: {message}, {args}")
         if self.file_handle:
             self.file_handle.close()
             self.file_handle = None
     
-    def __on_close(self):
-        self.logger.debug("on_close")
+    def __on_close(self, *args):
+        self.logger.debug(f"on_close: {args}")
         # if self.file_handle:
         #     self.file_handle.close()
         #     self.file_handle = None
 
-    def __on_completed(self):
-        self.logger.debug("on_completed")
+    def __on_completed(self, *args):
+        self.logger.debug(f"on_completed: {args}")
         if self.file_handle:
             self.file_handle.close()
             self.file_handle = None
@@ -118,9 +114,6 @@ class AudioGenerator_ali:
         try:
             self.logger.info(f"开始生成语音(阿里云): {text}")
             
-            # 再次确保SSL验证被禁用
-            ssl._create_default_https_context = ssl._create_unverified_context
-            
             # 获取token
             self.token = self.__get_token()
             self.logger.debug(f"token: {self.token}")
@@ -147,7 +140,7 @@ class AudioGenerator_ali:
             self.file_handle = open(str(output_path), 'wb')
             
             # 创建语音合成器
-            nls.enableTrace(True)
+            # nls.enableTrace(True)
             
             tts = nls.NlsSpeechSynthesizer(
                 url=self.url,
