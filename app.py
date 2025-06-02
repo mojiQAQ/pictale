@@ -15,6 +15,7 @@ from modules.audio import AudioGenerator
 from modules.audio_ali import AudioGenerator_ali
 from modules.video import VideoGenerator
 from modules.srt import SrtGenerator
+from modules.draft import DraftGenerator
 from modules.config import ConfigManager
 from modules.logger import get_logger, COLORS
 import subprocess
@@ -262,9 +263,27 @@ async def generate_video(args, config_manager):
             elif 'video_path' in result:
                 video_paths.append(result['video_path'])
     
+    # 生成剪映草稿
+    if args.draft and len(all_results) > 0:
+        log_step(len(words) + 1, len(words) + 2, "生成剪映草稿...")
+        try:
+            draft_gen = DraftGenerator()
+            output_dir = config_manager.get_output_base_dir() / str(task_id)
+            draft_path = draft_gen.generate_from_results(
+                all_results, 
+                output_path=output_dir / f"pictale_draft_{task_id}.jy"
+            )
+            log_success(f"剪映草稿已生成: {draft_path}")
+        except Exception as e:
+            log_error(f"生成剪映草稿时出错: {str(e)}")
+            if args.debug:
+                import traceback
+                traceback.print_exc()
+
     # 如果需要合并视频
     if args.combine and len(video_paths) > 0:
-        log_step(len(words) + 1, len(words) + 1, "合并所有视频...")
+        combine_step = len(words) + 2 if args.draft else len(words) + 1
+        log_step(combine_step, combine_step, "合并所有视频...")
         output_dir = config_manager.get_output_base_dir() / str(task_id)
         combined_video_path = output_dir / f"combined.mp4"
 
@@ -364,12 +383,14 @@ async def main():
     parser.add_argument('--audio-gap', type=float, default=0.3, help='各段音频之间的间隔时间（秒）')
     parser.add_argument('--end-pause', type=float, default=0, help='每个单词视频结束后的静置时间（秒）')
     
-    # 视频合并选项
+    # 输出选项
     parser.add_argument('--combine', '-c', action='store_true', help='合并生成的多个视频')
+    parser.add_argument('--draft', '-d', action='store_true', help='生成剪映草稿文件 (.jy)')
 
     # 其他选项
     parser.add_argument('--play', action='store_true', help='生成后自动播放视频')
     parser.add_argument('--no-color', action='store_true', help='禁用彩色输出')
+    parser.add_argument('--debug', action='store_true', help='启用调试模式')
     parser.add_argument('--version', action='store_true', help='显示版本信息')
     
     args = parser.parse_args()
