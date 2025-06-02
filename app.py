@@ -15,7 +15,7 @@ from modules.audio import AudioGenerator
 from modules.audio_ali import AudioGenerator_ali
 from modules.video import VideoGenerator
 from modules.srt import SrtGenerator
-from modules.draft import DraftGenerator
+# from modules.draft import DraftGenerator
 from modules.config import ConfigManager
 from modules.logger import get_logger, COLORS
 import subprocess
